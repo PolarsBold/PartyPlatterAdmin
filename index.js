@@ -1,6 +1,6 @@
 // === Constants ===
 const BASE = "https://fsa-crud-2aa9294fe819.herokuapp.com/api";
-const COHORT = ""; // Make sure to change this!
+const COHORT = "/2504-FTB-ET-WEB-FT";
 const API = BASE + COHORT;
 
 // === State ===
@@ -57,6 +57,61 @@ async function getGuests() {
   }
 }
 
+function formEvent() {
+  const inputForm = document.querySelector("#input-form");
+  inputForm.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const dateFromForm = document.getElementById("date-input").value;
+    const isoDate = new Date(dateFromForm).toISOString();
+    const newPartyObject = {
+      name: document.getElementById("name-input").value,
+      id: Math.floor(Math.random() * 1000),
+      description: document.getElementById("description-input").value,
+      date: isoDate,
+      location: document.getElementById("location-input").value,
+    };
+    try {
+      const response = await fetch(
+        "https://fsa-crud-2aa9294fe819.herokuapp.com/api/2504-FTB-ET-WEB-FT/events",
+        {
+          method: "POST",
+          body: JSON.stringify(newPartyObject),
+          headers: { "Content-type": "application/json; charset=UTF-8" },
+        }
+      );
+      const json = await response.json();
+      console.log(json);
+      await getParties();
+      render();
+      inputForm.reset();
+      return json;
+    } catch (err) {
+      console.error(err);
+    }
+  });
+}
+
+// function deleteParty() {
+//   const deleteButton = document.querySelector("#delete-button");
+//   deleteButton.addEventListener("click", async function () {
+//     try {
+//       const response = await fetch(
+//         `https://fsa-crud-2aa9294fe819.herokuapp.com/api/2504-FTB-ET-WEB-FT/events/${selectedParty.id}`,
+//         { method: "DELETE" }
+//       );
+//       const $p = document.querySelector("#selected-party-text");
+//       const $pTextNode = document.createTextNode(
+//         "Please select a party to learn more."
+//       );
+//       $p.appendChild($pTextNode);
+//       $app.querySelector("#party-detail-section").replaceWith($p);
+//       await getParties();
+//       render();
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   });
+// }
 // === Components ===
 
 /** Party name that shows more details about the party when clicked */
@@ -89,20 +144,43 @@ function PartyList() {
 function SelectedParty() {
   if (!selectedParty) {
     const $p = document.createElement("p");
+    $p.id = "selected-party-text";
     $p.textContent = "Please select a party to learn more.";
     return $p;
   }
 
   const $party = document.createElement("section");
+  $party.id = "party-detail-section";
   $party.innerHTML = `
     <h3>${selectedParty.name} #${selectedParty.id}</h3>
     <time datetime="${selectedParty.date}">
       ${selectedParty.date.slice(0, 10)}
     </time>
     <address>${selectedParty.location}</address>
-    <p>${selectedParty.description}</p>
+    <p>${selectedParty.description}</p><br>
+    <button id="delete-button">Delete Party</button>
     <GuestList></GuestList>
   `;
+
+  const deleteButton = $party.querySelector("#delete-button");
+  deleteButton.addEventListener("click", async function () {
+    try {
+      const response = await fetch(
+        `https://fsa-crud-2aa9294fe819.herokuapp.com/api/2504-FTB-ET-WEB-FT/events/${selectedParty.id}`,
+        { method: "DELETE" }
+      );
+      const $p = document.querySelector("#selected-party-text");
+      const $pTextNode = document.createTextNode(
+        "Please select a party to learn more."
+      );
+      selectedParty = null;
+      await getParties();
+      render();
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
   $party.querySelector("GuestList").replaceWith(GuestList());
 
   return $party;
@@ -128,6 +206,25 @@ function GuestList() {
   return $ul;
 }
 
+function createInputs() {
+  const $inputs = document.createElement("section");
+  $inputs.id = "inputs";
+  $inputs.innerHTML = `
+  <form id="input-form">
+  <h3>Name</h3>
+  <input id="name-input" placeholder="Name" type="string"></input>
+  <h3>Description</h3>
+  <input id="description-input" placeholder="Description" type="string"></input>
+  <h3>Date</h3>
+  <input id="date-input" type="date"></input>
+  <h3>Location</h3>
+  <input id="location-input" placeholder="Location" type="string"></input></br>
+  <button id="add-party">Add Party</button>
+  </form>
+  `;
+  return $inputs;
+}
+
 // === Render ===
 function render() {
   const $app = document.querySelector("#app");
@@ -142,11 +239,17 @@ function render() {
         <h2>Party Details</h2>
         <SelectedParty></SelectedParty>
       </section>
+      <section id="inputs-container">
+        <h2>Add new party</h2>
+        <inputs></inputs>
+      </section>
     </main>
   `;
 
   $app.querySelector("PartyList").replaceWith(PartyList());
   $app.querySelector("SelectedParty").replaceWith(SelectedParty());
+  $app.querySelector("inputs").replaceWith(createInputs());
+  formEvent();
 }
 
 async function init() {
